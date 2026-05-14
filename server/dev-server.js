@@ -707,6 +707,9 @@ app.post('/api/tokens', blockDuringImpersonation, requireScope('tokens:manage'),
     if (error.statusCode) {
       return res.status(error.statusCode).json({ error: error.message });
     }
+    if (error.message && (error.message.includes('Invalid scopes') || error.message.includes('scopes must be'))) {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('Create token error:', error);
     res.status(500).json({ error: error.message });
   }
