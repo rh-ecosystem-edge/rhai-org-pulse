@@ -272,6 +272,10 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/ai-impact/features` — all features
 - `/api/modules/ai-impact/features/:key` — single feature + history
 - `/api/modules/ai-impact/features/status` — feature status (admin)
+- `/api/modules/ai-impact/test-plans` — all test plans (slim projection)
+- `/api/modules/ai-impact/test-plans/:key` — single test plan + history
+- `/api/modules/ai-impact/test-plans/status` — test plan data status (admin)
+- `/api/modules/ai-impact/test-plans/sync/status` — Jira sync status
 - `/api/health-metrics/tracking/status` — opt-out status
 - `/api/health-metrics/dashboard` — aggregated dashboard (admin/viewer)
 - `/api/health-metrics/pages` — per-page stats (admin/viewer)
@@ -285,6 +289,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/team-tracker/field-options/:name` — replace option set values (admin)
 - `/api/modules/ai-impact/assessments/:key` — upsert assessment (admin)
 - `/api/modules/ai-impact/features/:key` — upsert feature (admin)
+- `/api/modules/ai-impact/test-plans/:key` — upsert test plan (admin)
 
 **POST:**
 - `/api/tokens` — create API token
@@ -324,6 +329,8 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/release-analysis/quality/refresh` — refresh quality data from Jira (admin)
 - `/api/modules/ai-impact/assessments/bulk` — bulk upsert assessments (admin)
 - `/api/modules/ai-impact/features/bulk` — bulk upsert features (admin)
+- `/api/modules/ai-impact/test-plans/bulk` — bulk upsert test plans (admin)
+- `/api/modules/ai-impact/test-plans/sync` — trigger test plan Jira sync (admin)
 - `/api/health-metrics/track` — record page view (rate-limited)
 - `/api/health-metrics/tracking/opt-out` — opt out (authenticated)
 - `/api/health-metrics/config` — update config (admin)
@@ -349,6 +356,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/release-analysis/conforma` — clear conforma data (admin)
 - `/api/modules/ai-impact/assessments` — clear assessments (admin)
 - `/api/modules/ai-impact/features` — clear features (admin)
+- `/api/modules/ai-impact/test-plans` — clear test plans (admin)
 - `/api/modules/team-tracker/structure/teams/:teamId` — delete team (admin/team-admin)
 - `/api/modules/team-tracker/structure/teams/:teamId/members/:uid` — unassign person (manager/admin)
 - `/api/modules/team-tracker/structure/field-definitions/person/:fieldId` — soft-delete field (admin/team-admin)
