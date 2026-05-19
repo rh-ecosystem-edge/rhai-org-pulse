@@ -787,17 +787,24 @@ Blocker/Critical/Major bugs with affected versions, per project. Only bugs creat
 
 ---
 
-## Releases — Quality Components (`data/releases/delivery/quality/components.json`)
+## Releases — Quality Components (API Response)
 
-All unique component names from the tracked projects, sorted alphabetically.
+**Note:** Components are computed dynamically from bug files by the `GET /api/modules/releases/delivery/quality/components` endpoint. No stored `components.json` file exists.
+
+The API response format:
 
 ```json
 [
-  "Dashboard",
-  "Data Science Pipelines",
-  "Model Serving"
+  { "name": "Dashboard", "count": 45 },
+  { "name": "Data Science Pipelines", "count": 32 },
+  { "name": "Model Serving", "count": 28 }
 ]
 ```
+
+**Fields:**
+- `name` (string): Component name
+- `count` (number): Number of bugs affecting this component
+- Sorted by count descending
 
 ---
 
