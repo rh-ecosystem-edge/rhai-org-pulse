@@ -37,7 +37,7 @@ npm run dev:full       # Starts Vite (5173) + Express (3001)
 | `PRODUCT_PAGES_CLIENT_ID` | OAuth client ID for Product Pages (production). Mutually exclusive with `PRODUCT_PAGES_TOKEN`. |
 | `PRODUCT_PAGES_CLIENT_SECRET` | OAuth client secret for Product Pages (production). Used with `PRODUCT_PAGES_CLIENT_ID`. |
 | `PRODUCT_PAGES_TOKEN` | Personal bearer token for Product Pages (local dev fallback). Used when OAuth env vars are not set. |
-| `FEATURE_TRAFFIC_GITLAB_TOKEN` | GitLab PAT with `read_api` scope for feature-traffic pipeline. Overrides `GITLAB_TOKEN` for CI artifact fetching. |
+| `FEATURE_TRAFFIC_GITLAB_TOKEN` | GitLab PAT with `read_api` scope for releases execution pipeline. Overrides `GITLAB_TOKEN` for CI artifact fetching. |
 | `AUTH_EMAIL_DOMAIN` | Override email domain for role matching (e.g. `cluster.local`). When set, role assignments normalize emails to this domain. Env var takes precedence over `authEmailDomain` in site-config.json. |
 | `DEMO_MODE` / `VITE_DEMO_MODE` | Set both to `true` for fixture data (no credentials needed). |
 
@@ -242,6 +242,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/team-tracker/org-teams/:teamKey/members` — team members
 - `/api/modules/team-tracker/permissions/me` — permission tier + managed UIDs
 - `/api/modules/team-tracker/manager/dashboard` — manager dashboard data
+- `/api/modules/team-tracker/admin/field-completeness` — all people/teams with field data for data quality auditing (team-admin/admin)
 - `/api/modules/team-tracker/structure/teams` — list teams
 - `/api/modules/team-tracker/structure/unassigned` — unassigned people
 - `/api/modules/team-tracker/structure/field-definitions` — field definitions
@@ -254,18 +255,40 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/team-tracker/components` — component list (deprecated alias)
 - `/api/modules/team-tracker/structure/migrate/preview` — migration preview (admin)
 - `/api/modules/team-tracker/structure/migrate/field-to-options/preview` — field-to-options migration preview (team-admin)
-- `/api/modules/release-analysis/product-pages/products` — Product Pages products (admin)
-- `/api/modules/release-analysis/conforma/releases` — conforma releases
-- `/api/modules/release-analysis/conforma/releases/:version` — release detail
-- `/api/modules/release-analysis/conforma/status` — conforma data status
-- `/api/modules/release-analysis/quality/versions` — quality versions with bug counts
-- `/api/modules/release-analysis/quality/bugs` — cumulative bug data for selected versions
-- `/api/modules/release-analysis/quality/components` — components with bug counts
-- `/api/modules/feature-traffic/features` — features (filterable)
-- `/api/modules/feature-traffic/features/:key` — feature detail
-- `/api/modules/feature-traffic/versions` — unique fix versions
-- `/api/modules/feature-traffic/status` — data freshness
-- `/api/modules/feature-traffic/config` — fetch config (admin)
+- `/api/modules/releases/registry` — list releases
+- `/api/modules/releases/registry/:id` — single release
+- `/api/modules/releases/audit-log` — unified audit log across all release domains
+- `/api/modules/releases/planning/releases` — planning releases
+- `/api/modules/releases/planning/releases/:version/candidates` — release candidates
+- `/api/modules/releases/planning/refresh/status` — planning refresh status
+- `/api/modules/releases/planning/config` — planning config (admin)
+- `/api/modules/releases/planning/permissions` — planning permissions
+- `/api/modules/releases/planning/smartsheet/releases` — smartsheet releases
+- `/api/modules/releases/planning/audit-log` — planning audit log
+- `/api/modules/releases/planning/admin/seed/fixture` — load seed fixture (admin)
+- `/api/modules/releases/planning/releases/:version/health` — release health
+- `/api/modules/releases/planning/releases/:version/health/summary` — health summary
+- `/api/modules/releases/planning/releases/:version/health/feature/:key` — single feature health
+- `/api/modules/releases/planning/releases/:version/health/snapshot/:phase` — committed snapshot
+- `/api/modules/releases/planning/releases/:version/health/refresh/status` — health refresh status
+- `/api/modules/releases/planning/releases/:version/health/milestones/debug` — milestones debug (release-manager)
+- `/api/modules/releases/planning/releases/health-admin/config` — health admin config (release-manager)
+- `/api/modules/releases/planning/releases/health-admin/jira-fields` — search Jira fields for RICE (release-manager)
+- `/api/modules/releases/execution/features` — features (filterable)
+- `/api/modules/releases/execution/features/:key` — feature detail
+- `/api/modules/releases/execution/versions` — unique fix versions
+- `/api/modules/releases/execution/status` — data freshness
+- `/api/modules/releases/execution/config` — fetch config (admin)
+- `/api/modules/releases/delivery/config` — delivery config (admin)
+- `/api/modules/releases/delivery/product-pages/products` — Product Pages products (admin)
+- `/api/modules/releases/delivery/refresh/status` — delivery refresh status
+- `/api/modules/releases/delivery/analysis` — release analysis data
+- `/api/modules/releases/delivery/conforma/releases` — conforma releases
+- `/api/modules/releases/delivery/conforma/releases/:version` — conforma release detail
+- `/api/modules/releases/delivery/conforma/status` — conforma data status
+- `/api/modules/releases/quality/versions` — quality versions with bug counts
+- `/api/modules/releases/quality/bugs` — cumulative bug data for selected versions
+- `/api/modules/releases/quality/components` — components with bug counts
 - `/api/modules/ai-impact/assessments` — all assessments
 - `/api/modules/ai-impact/assessments/:key` — single assessment + history
 - `/api/modules/ai-impact/assessments/status` — assessment status (admin)
@@ -276,6 +299,9 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/ai-impact/test-plans/:key` — single test plan + history
 - `/api/modules/ai-impact/test-plans/status` — test plan data status (admin)
 - `/api/modules/ai-impact/test-plans/sync/status` — Jira sync status
+- `/api/modules/ai-impact/component-onboarding` — all component onboarding entries (latest projection)
+- `/api/modules/ai-impact/component-onboarding/:key` — single component onboarding entry + history
+- `/api/modules/ai-impact/component-onboarding/status` — component onboarding data status (admin)
 - `/api/health-metrics/tracking/status` — opt-out status
 - `/api/health-metrics/dashboard` — aggregated dashboard (admin/viewer)
 - `/api/health-metrics/pages` — per-page stats (admin/viewer)
@@ -287,6 +313,11 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 
 **PUT:**
 - `/api/modules/team-tracker/field-options/:name` — replace option set values (admin)
+- `/api/modules/releases/registry/:id` — update release (release-manager)
+- `/api/modules/releases/planning/releases/:version/big-rocks/:name` — update big rock (release-manager)
+- `/api/modules/releases/planning/releases/:version/big-rocks/reorder` — reorder big rocks (release-manager)
+- `/api/modules/releases/planning/releases/:version/health/override/:featureKey` — set health override (release-manager)
+- `/api/modules/releases/planning/releases/health-admin/config` — save health admin config (release-manager)
 - `/api/modules/ai-impact/assessments/:key` — upsert assessment (admin)
 - `/api/modules/ai-impact/features/:key` — upsert feature (admin)
 - `/api/modules/ai-impact/test-plans/:key` — upsert test plan (admin)
@@ -323,14 +354,31 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/modules/team-tracker/structure/migrate/field-to-options` — field-to-options migration (team-admin)
 - `/api/modules/team-tracker/field-options/:name/values` — add option values (team-admin)
 - `/api/modules/team-tracker/registry/people/ldap-import` — LDAP import (team-admin/admin)
-- `/api/modules/feature-traffic/refresh` — manual data refresh (admin)
-- `/api/modules/feature-traffic/config` — save fetch config (admin)
-- `/api/modules/release-analysis/conforma/bulk` — full replace conforma data (admin)
-- `/api/modules/release-analysis/quality/refresh` — refresh quality data from Jira (admin)
+- `/api/modules/releases/registry` — create release (release-manager)
+- `/api/modules/releases/registry/discover` — auto-discover from Product Pages (release-manager)
+- `/api/modules/releases/admin/migrate-storage` — clean up old storage paths after migration (admin)
+- `/api/modules/releases/planning/releases` — create planning release (release-manager)
+- `/api/modules/releases/planning/releases/:version/big-rocks` — create big rock (release-manager)
+- `/api/modules/releases/planning/releases/:version/refresh` — refresh planning data (release-manager)
+- `/api/modules/releases/planning/jira/validate-keys` — validate Jira keys (release-manager)
+- `/api/modules/releases/planning/releases/:version/import/doc/preview` — preview doc import (release-manager)
+- `/api/modules/releases/planning/releases/:version/import/doc` — import doc (release-manager)
+- `/api/modules/releases/planning/admin/seed` — bulk import seed data (admin)
+- `/api/modules/releases/planning/releases/:version/health/refresh` — refresh health (release-manager)
+- `/api/modules/releases/planning/releases/:version/health/snapshot/:phase` — create health snapshot (release-manager)
+- `/api/modules/releases/planning/releases/health-admin/rice-test` — test RICE field IDs (release-manager)
+- `/api/modules/releases/execution/refresh` — manual execution data refresh (admin)
+- `/api/modules/releases/execution/config` — save execution fetch config (admin)
+- `/api/modules/releases/delivery/config` — save delivery config (admin)
+- `/api/modules/releases/delivery/refresh` — refresh delivery data (admin)
+- `/api/modules/releases/delivery/admin/releases` — upload releases (admin)
+- `/api/modules/releases/delivery/conforma/bulk` — full replace conforma data (admin)
+- `/api/modules/releases/quality/refresh` — refresh quality data from Jira (admin)
 - `/api/modules/ai-impact/assessments/bulk` — bulk upsert assessments (admin)
 - `/api/modules/ai-impact/features/bulk` — bulk upsert features (admin)
 - `/api/modules/ai-impact/test-plans/bulk` — bulk upsert test plans (admin)
 - `/api/modules/ai-impact/test-plans/sync` — trigger test plan Jira sync (admin)
+- `/api/modules/ai-impact/component-onboarding/bulk` — bulk upsert component onboarding data (admin)
 - `/api/health-metrics/track` — record page view (rate-limited)
 - `/api/health-metrics/tracking/opt-out` — opt out (authenticated)
 - `/api/health-metrics/config` — update config (admin)
@@ -341,6 +389,7 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/tokens/:id/scopes` — update own token scopes
 - `/api/admin/tokens/:id/scopes` — update any token scopes (admin)
 - `/api/modules/team-tracker/structure/teams/:teamId` — rename team (admin/team-admin)
+- `/api/modules/team-tracker/structure/teams/:teamId/description` — update team description (team-purview)
 - `/api/modules/team-tracker/structure/field-definitions/person/:fieldId` — edit field def (admin/team-admin)
 - `/api/modules/team-tracker/structure/field-definitions/team/:fieldId` — edit field def (admin/team-admin)
 - `/api/modules/team-tracker/structure/person/:uid/fields` — update person fields (manager/admin)
@@ -353,10 +402,16 @@ All routes prefixed with `/api`. Authenticated via OAuth proxy in production.
 - `/api/admin/tokens/:id` — revoke any token (admin)
 - `/api/admin/messages/:id` — remove announcement (admin)
 - `/api/modules/team-tracker/snapshots` — delete all snapshots (admin)
-- `/api/modules/release-analysis/conforma` — clear conforma data (admin)
+- `/api/modules/releases/registry/:id` — archive release (release-manager)
+- `/api/modules/releases/planning/releases/:version` — delete planning release (admin)
+- `/api/modules/releases/planning/releases/:version/big-rocks/:name` — delete big rock (release-manager)
+- `/api/modules/releases/planning/releases/:version/health/override/:featureKey` — remove health override (release-manager)
+- `/api/modules/releases/delivery/config` — delete delivery config (admin)
+- `/api/modules/releases/delivery/conforma` — clear conforma data (admin)
 - `/api/modules/ai-impact/assessments` — clear assessments (admin)
 - `/api/modules/ai-impact/features` — clear features (admin)
 - `/api/modules/ai-impact/test-plans` — clear test plans (admin)
+- `/api/modules/ai-impact/component-onboarding` — clear component onboarding data (admin)
 - `/api/modules/team-tracker/structure/teams/:teamId` — delete team (admin/team-admin)
 - `/api/modules/team-tracker/structure/teams/:teamId/members/:uid` — unassign person (manager/admin)
 - `/api/modules/team-tracker/structure/field-definitions/person/:fieldId` — soft-delete field (admin/team-admin)

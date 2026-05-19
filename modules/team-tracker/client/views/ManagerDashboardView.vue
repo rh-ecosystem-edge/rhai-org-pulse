@@ -234,88 +234,48 @@
                   class="px-4 py-3 text-sm"
                   :class="bulkEditing ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
                 >
-                  <!-- BULK EDIT MODE: all cells are editors -->
-                  <div v-if="bulkEditing" class="min-w-[140px]">
-                    <ConstrainedAutocomplete
-                      v-if="field.type === 'constrained' && field.allowedValues"
-                      :model-value="getBulkValue(report.uid, field)"
-                      :options="field.allowedValues"
-                      :multi-value="!!field.multiValue"
-                      @update:model-value="setBulkValue(report.uid, field.id, $event)"
-                    />
-                    <PersonAutocomplete
-                      v-else-if="field.type === 'person-reference-linked'"
-                      :model-value="getBulkValue(report.uid, field)"
-                      :people="allPeopleForEditor"
-                      @update:model-value="setBulkValue(report.uid, field.id, $event)"
-                    />
-                    <input
-                      v-else
-                      :value="getBulkValue(report.uid, field)"
-                      class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
-                      @input="setBulkValue(report.uid, field.id, $event.target.value)"
-                    >
-                  </div>
+                  <!-- BULK EDIT MODE -->
+                  <FieldEditCell
+                    v-if="bulkEditing"
+                    :field="field"
+                    :model-value="getBulkValue(report.uid, field)"
+                    :all-people="allPeopleForEditor"
+                    :referenced-people="referencedPeople"
+                    :show-buttons="false"
+                    @update:model-value="setBulkValue(report.uid, field.id, $event)"
+                    @add-person="addToBulkPersonValue(report.uid, field.id, $event)"
+                    @remove-person="removeFromBulkPersonValue(report.uid, field.id, $event)"
+                  />
 
                   <!-- SINGLE-CELL EDIT MODE -->
                   <div v-else-if="editingCell.uid === report.uid && editingCell.fieldId === field.id" class="editing-cell relative min-w-[160px]">
-                    <ConstrainedAutocomplete
-                      v-if="field.type === 'constrained' && field.allowedValues"
+                    <FieldEditCell
+                      :field="field"
                       :model-value="editValue"
-                      :options="field.allowedValues"
-                      :multi-value="!!field.multiValue"
+                      :all-people="allPeopleForEditor"
+                      :referenced-people="referencedPeople"
+                      :disabled="saving"
                       @update:model-value="editValue = $event"
                       @save="saveCell(report.uid, field.id)"
                       @cancel="cancelEdit"
+                      @add-person="addToEditPersonValue($event)"
+                      @remove-person="removeFromEditPersonValue($event)"
                     />
-                    <PersonAutocomplete
-                      v-else-if="field.type === 'person-reference-linked'"
-                      :model-value="editValue"
-                      :people="allPeopleForEditor"
-                      @update:model-value="editValue = $event"
-                      @save="saveCell(report.uid, field.id)"
-                      @cancel="cancelEdit"
-                    />
-                    <input
-                      v-else
-                      v-model="editValue"
-                      class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
-                      @keyup.enter="saveCell(report.uid, field.id)"
-                      @keyup.escape="cancelEdit"
-                    >
-                    <div class="flex gap-1.5 mt-1">
-                      <button class="px-2 py-0.5 text-xs font-medium text-white bg-primary-600 rounded hover:bg-primary-700 disabled:opacity-50" :disabled="saving" @click="saveCell(report.uid, field.id)">Save</button>
-                      <button class="px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600" @click="cancelEdit">Cancel</button>
-                    </div>
                   </div>
 
                   <!-- DISPLAY MODE -->
                   <div
                     v-else
-                    class="group flex items-center gap-1.5 cursor-pointer"
-                    :class="{ 'bg-red-100 dark:bg-red-700/50 rounded px-1': isFieldEmpty(report.customFields?.[field.id], field) }"
+                    class="cursor-pointer"
                     @click="startCellEdit(report, field)"
                   >
-                    <template v-if="field.multiValue && field.type === 'constrained'">
-                      <div class="flex flex-wrap gap-1">
-                        <span
-                          v-for="v in displayMultiValues(report, field)"
-                          :key="v"
-                          class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                        >{{ v }}</span>
-                        <span v-if="displayMultiValues(report, field).length === 0" class="text-gray-400 dark:text-gray-500">—</span>
-                      </div>
-                    </template>
-                    <template v-else-if="field.type === 'person-reference-linked'">
-                      <span v-if="resolvePersonName(report.customFields?.[field.id])" class="text-primary-600 dark:text-primary-400">{{ resolvePersonName(report.customFields?.[field.id]) }}</span>
-                      <span v-else class="text-gray-400 dark:text-gray-500">—</span>
-                    </template>
-                    <template v-else>
-                      <span class="text-gray-900 dark:text-gray-100">{{ displaySingleValue(report, field) }}</span>
-                    </template>
-                    <svg class="h-3 w-3 text-gray-400 dark:text-gray-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
+                    <FieldDisplayCell
+                      :value="report.customFields?.[field.id]"
+                      :field="field"
+                      :referenced-people="referencedPeople"
+                      :highlight="isFieldEmpty(report.customFields?.[field.id], field)"
+                      @person-click="navigateToPersonDetail($event)"
+                    />
                   </div>
                 </td>
               </tr>
@@ -435,111 +395,47 @@
                     :class="teamBulkEditing ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
                   >
                     <!-- BULK EDIT MODE -->
-                    <div v-if="teamBulkEditing" class="min-w-[140px]">
-                      <ConstrainedAutocomplete
-                        v-if="field.type === 'constrained' && field.allowedValues"
-                        :model-value="getTeamBulkValue(team.id, field)"
-                        :options="field.allowedValues"
-                        :multi-value="!!field.multiValue"
-                        @update:model-value="setTeamBulkValue(team.id, field.id, $event)"
-                      />
-                      <div v-else-if="field.type === 'person-reference-linked'" class="space-y-1">
-                        <div class="flex flex-wrap gap-1">
-                          <span
-                            v-for="uid in getTeamBulkValue(team.id, field)"
-                            :key="uid"
-                            class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
-                          >
-                            {{ referencedPeople[uid] || uid }}
-                            <button class="ml-1 text-primary-500 hover:text-primary-700" @click="removeFromTeamBulkPersonValue(team.id, field.id, uid)">&times;</button>
-                          </span>
-                        </div>
-                        <PersonAutocomplete
-                          :model-value="''"
-                          :people="allPeopleForEditor.filter(p => !getTeamBulkValue(team.id, field).includes(p.uid))"
-                          placeholder="Add person..."
-                          @update:model-value="addToTeamBulkPersonValue(team.id, field.id, $event)"
-                        />
-                      </div>
-                      <input
-                        v-else
-                        :value="getTeamBulkValue(team.id, field)"
-                        class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
-                        @input="setTeamBulkValue(team.id, field.id, $event.target.value)"
-                      >
-                    </div>
+                    <FieldEditCell
+                      v-if="teamBulkEditing"
+                      :field="field"
+                      :model-value="getTeamBulkValue(team.id, field)"
+                      :all-people="allPeopleForEditor"
+                      :referenced-people="referencedPeople"
+                      :show-buttons="false"
+                      @update:model-value="setTeamBulkValue(team.id, field.id, $event)"
+                      @add-person="addToTeamBulkPersonValue(team.id, field.id, $event)"
+                      @remove-person="removeFromTeamBulkPersonValue(team.id, field.id, $event)"
+                    />
 
                     <!-- SINGLE-CELL EDIT MODE -->
                     <div v-else-if="editingTeamCell.teamId === team.id && editingTeamCell.fieldId === field.id" class="editing-cell relative min-w-[160px]">
-                      <ConstrainedAutocomplete
-                        v-if="field.type === 'constrained' && field.allowedValues"
+                      <FieldEditCell
+                        :field="field"
                         :model-value="editTeamFieldValue"
-                        :options="field.allowedValues"
-                        :multi-value="!!field.multiValue"
+                        :all-people="allPeopleForEditor"
+                        :referenced-people="referencedPeople"
+                        :disabled="saving"
                         @update:model-value="editTeamFieldValue = $event"
                         @save="saveTeamFieldCell(team.id, field.id)"
                         @cancel="cancelTeamFieldEdit"
+                        @add-person="addToEditTeamFieldValue($event)"
+                        @remove-person="editTeamFieldValue = editTeamFieldValue.filter(u => u !== $event)"
                       />
-                      <div v-else-if="field.type === 'person-reference-linked'" class="space-y-1">
-                        <div class="flex flex-wrap gap-1">
-                          <span
-                            v-for="uid in editTeamFieldValue"
-                            :key="uid"
-                            class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
-                          >
-                            {{ referencedPeople[uid] || uid }}
-                            <button class="ml-1 text-primary-500 hover:text-primary-700" @click="editTeamFieldValue = editTeamFieldValue.filter(u => u !== uid)">&times;</button>
-                          </span>
-                        </div>
-                        <PersonAutocomplete
-                          :model-value="''"
-                          :people="allPeopleForEditor.filter(p => !editTeamFieldValue.includes(p.uid))"
-                          placeholder="Add person..."
-                          @update:model-value="addToEditTeamFieldValue($event)"
-                        />
-                      </div>
-                      <input
-                        v-else
-                        v-model="editTeamFieldValue"
-                        class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
-                        @keyup.enter="saveTeamFieldCell(team.id, field.id)"
-                        @keyup.escape="cancelTeamFieldEdit"
-                      >
-                      <div class="flex gap-1.5 mt-1">
-                        <button class="px-2 py-0.5 text-xs font-medium text-white bg-primary-600 rounded hover:bg-primary-700 disabled:opacity-50" :disabled="saving" @click="saveTeamFieldCell(team.id, field.id)">Save</button>
-                        <button class="px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600" @click="cancelTeamFieldEdit">Cancel</button>
-                      </div>
                     </div>
 
                     <!-- DISPLAY MODE -->
                     <div
                       v-else
-                      class="group cursor-pointer flex items-start gap-1"
-                      :class="{ 'bg-red-100 dark:bg-red-700/50 rounded px-1': isFieldEmpty(team.metadata?.[field.id], field) }"
+                      class="cursor-pointer"
                       @click="startTeamFieldEdit(team, field)"
                     >
-                      <!-- Person reference -->
-                      <div v-if="field.type === 'person-reference-linked'" class="flex-1 text-left">
-                        <template v-for="(uid, i) in normalizeArray(team.metadata[field.id])" :key="uid"><button
-                            @click.stop="navigateToPersonDetail(uid)"
-                            class="inline text-left text-primary-600 dark:text-primary-400 hover:underline"
-                          >{{ referencedPeople[uid] || uid }}<template v-if="i < normalizeArray(team.metadata[field.id]).length - 1">,</template></button>{{ ' ' }}</template>
-                        <span v-if="normalizeArray(team.metadata[field.id]).length === 0" class="text-gray-400 dark:text-gray-500">—</span>
-                      </div>
-                      <!-- Multi-value constrained pills -->
-                      <div v-else-if="field.type === 'constrained' && field.multiValue" class="flex flex-wrap gap-1">
-                        <span
-                          v-for="v in normalizeArray(team.metadata[field.id])"
-                          :key="v"
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                        >{{ v }}</span>
-                        <span v-if="normalizeArray(team.metadata[field.id]).length === 0" class="text-gray-400 dark:text-gray-500">—</span>
-                      </div>
-                      <!-- Plain text -->
-                      <span v-else class="text-gray-900 dark:text-gray-100">{{ displayTeamFieldValue(team, field) }}</span>
-                      <svg class="h-3 w-3 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
+                      <FieldDisplayCell
+                        :value="team.metadata?.[field.id]"
+                        :field="field"
+                        :referenced-people="referencedPeople"
+                        :highlight="isFieldEmpty(team.metadata?.[field.id], field)"
+                        @person-click="navigateToPersonDetail($event)"
+                      />
                     </div>
                   </td>
                   <!-- Boards column -->
@@ -597,7 +493,8 @@ import { useTeams } from '@shared/client/composables/useTeams'
 import { useRoster } from '@shared/client/composables/useRoster'
 import { apiRequest } from '@shared/client/services/api'
 import ConstrainedAutocomplete from '../components/ConstrainedAutocomplete.vue'
-import PersonAutocomplete from '../components/PersonAutocomplete.vue'
+import FieldDisplayCell from '../components/FieldDisplayCell.vue'
+import FieldEditCell from '../components/FieldEditCell.vue'
 import TeamBoardsDrawer from '../components/TeamBoardsDrawer.vue'
 import { useManagerTutorial } from '../composables/useManagerTutorial'
 
@@ -877,6 +774,34 @@ function setBulkValue(uid, fieldId, value) {
   }
 }
 
+// Person field bulk person-reference helpers
+function addToBulkPersonValue(uid, fieldId, personUid) {
+  if (!personUid) return
+  const current = [...(Array.isArray(getBulkValue(uid, { id: fieldId, type: 'person-reference-linked', multiValue: true })) ? getBulkValue(uid, { id: fieldId, type: 'person-reference-linked', multiValue: true }) : [])]
+  if (!current.includes(personUid)) {
+    current.push(personUid)
+    setBulkValue(uid, fieldId, current)
+  }
+}
+
+function removeFromBulkPersonValue(uid, fieldId, personUid) {
+  const field = visiblePersonFields.value.find(f => f.id === fieldId)
+  const current = [...(Array.isArray(getBulkValue(uid, field)) ? getBulkValue(uid, field) : [])]
+  setBulkValue(uid, fieldId, current.filter(u => u !== personUid))
+}
+
+function addToEditPersonValue(personUid) {
+  if (personUid && Array.isArray(editValue.value) && !editValue.value.includes(personUid)) {
+    editValue.value = [...editValue.value, personUid]
+  }
+}
+
+function removeFromEditPersonValue(personUid) {
+  if (Array.isArray(editValue.value)) {
+    editValue.value = editValue.value.filter(u => u !== personUid)
+  }
+}
+
 function teamNamesForUid(uid) {
   const report = visibleReports.value.find(r => r.uid === uid)
   if (!report || !report.teamIds) return []
@@ -1007,47 +932,12 @@ function cancelTeamEdit() {
   editingTeamUid.value = null
 }
 
-// --- Display helpers ---
-
-function displaySingleValue(report, field) {
-  const raw = report.customFields?.[field.id]
-  const val = Array.isArray(raw) ? raw[0] : raw
-  return val || '—'
-}
-
-function displayMultiValues(report, field) {
-  const raw = report.customFields?.[field.id]
-  return Array.isArray(raw) ? raw : (raw ? [raw] : [])
-}
-
-function resolvePersonName(rawUid) {
-  const uid = Array.isArray(rawUid) ? rawUid[0] : rawUid
-  if (!uid) return null
-  const person = allPeopleForEditor.value.find(p => p.uid === uid)
-  return person ? person.name : null
-}
-
-// --- Shared helpers ---
-
-function normalizeArray(val) {
-  return Array.isArray(val) ? val : (val ? [val] : [])
-}
-
 function navigateToPersonDetail(uid) {
   if (nav) nav.navigateTo('person-detail', { uid })
 }
 
 function navigateToTeamDetail(team) {
   if (nav) nav.navigateTo('team-detail', { teamKey: `${team.orgKey}::${team.name}` })
-}
-
-// --- Team tab: display helpers ---
-
-function displayTeamFieldValue(team, field) {
-  const raw = team.metadata[field.id]
-  if (raw == null) return '—'
-  const val = Array.isArray(raw) ? raw[0] : raw
-  return val || '—'
 }
 
 // --- Team tab: single-cell editing ---

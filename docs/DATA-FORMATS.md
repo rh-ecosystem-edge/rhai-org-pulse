@@ -391,6 +391,7 @@ Stores all in-app managed teams. Created when `teamDataSource` is set to `"in-ap
       "orgKey": "achen",
       "createdAt": "2026-01-01T00:00:00.000Z",
       "createdBy": "admin@example.com",
+      "description": "Owns the **core platform services** and developer experience.",
       "metadata": {
         "field_g7h8i9": "Pat Manager"
       },
@@ -407,6 +408,7 @@ Stores all in-app managed teams. Created when `teamDataSource` is set to `"in-ap
 - `teams` is a `{ teamId: team }` map.
 - Team IDs follow the pattern `team_` + 6 hex characters (e.g., `team_a1b2c3`), generated via `crypto.randomBytes(3)`.
 - `orgKey` links the team to an org root UID.
+- `description` is an optional Markdown string (max 2000 chars) describing the team's mission or scope. `null` when not set.
 - `metadata` stores team-level custom field values, keyed by field definition ID. Empty object `{}` when no team fields are set.
 - `createdBy` is the email of the user who created the team.
 - `boards` is an array of `{ url, name }` objects representing user-managed Jira board links. `url` is required (non-empty string), `name` is optional (empty string means no display name set). Defaults to `[]` on new teams. Populated during Sheets-to-In-App migration from `teams-metadata.json` board data.
@@ -692,9 +694,9 @@ Admin-configurable settings for the AI Impact module.
 - `trendThresholdPp` is the percentage-point threshold for classifying trends as "growing" or "declining" (0-50)
 - Defaults are used when no config file exists
 
-## Release Analysis — Config (`data/release-analysis/config.json`)
+## Releases — Delivery Config (`data/releases/delivery/config.json`)
 
-Admin-configurable settings for the Release Analysis module.
+Admin-configurable settings for the Releases module delivery domain (formerly Release Analysis).
 
 ```json
 {
@@ -830,9 +832,9 @@ Stores hashed API tokens for bearer-token authentication. Created on first token
 
 ---
 
-## Feature Traffic — Index (`data/feature-traffic/index.json`)
+## Releases — Execution Index (`data/releases/execution/index.json`)
 
-Summary index of all tracked features, produced by the GitLab CI pipeline.
+Summary index of all tracked features, produced by the GitLab CI pipeline (formerly Feature Traffic).
 
 ```json
 {
@@ -855,7 +857,7 @@ Summary index of all tracked features, produced by the GitLab CI pipeline.
 }
 ```
 
-## Feature Traffic — Feature Detail (`data/feature-traffic/features/{KEY}.json`)
+## Releases — Execution Feature Detail (`data/releases/execution/features/{KEY}.json`)
 
 Per-feature detail file with epic breakdown.
 
@@ -923,9 +925,9 @@ Heuristic narrative signals for the Feature detail **Traffic Signals** panel (bl
 - **`source`**: `"derived"` from embedded epic/issue JSON; editors may set `"edited"` after manual refinement (your pipeline may still overwrite on the next fetch unless you preserve edits out-of-band).
 - Traffic **blockers** here are **not** the same as Jira **priority = Blocker** — they reflect backlog/integration risk and explicit **`isBlocked`** links on issues.
 
-## Feature Traffic — Config (`data/feature-traffic/config.json`)
+## Releases — Execution Config (`data/releases/execution/config.json`)
 
-Admin-configurable settings for GitLab CI artifact fetching.
+Admin-configurable settings for GitLab CI artifact fetching (formerly Feature Traffic config).
 
 ```json
 {
@@ -943,7 +945,7 @@ Admin-configurable settings for GitLab CI artifact fetching.
 - `enabled` defaults to `false`. Module does nothing until an admin enables it in Settings.
 - `artifactPath` is the directory prefix stripped from zip entry paths (e.g., `output/index.json` becomes `index.json`).
 
-## Feature Traffic — Last Fetch (`data/feature-traffic/last-fetch.json`)
+## Releases — Execution Last Fetch (`data/releases/execution/last-fetch.json`)
 
 Metadata from the most recent fetch attempt.
 
